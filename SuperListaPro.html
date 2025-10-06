@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperLista Pro - Otimizado</title>
+
+    <script>
+        if (localStorage.getItem('superlista_theme') === 'light' || (!('superlista_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; }
+        .dark ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .item-comprado { text-decoration: line-through; opacity: 0.6; }
+        .modal-backdrop { transition: opacity 0.3s ease-in-out; }
+        .modal-content { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; }
+        .toast { opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; visibility: hidden; }
+        .toast.show { opacity: 1; transform: translateY(0); visibility: visible; }
+        .category-draggable { cursor: grab; }
+        .category-draggable:active { cursor: grabbing; }
+        .dragging { opacity: 0.5; border: 2px dashed #0ea5e9; }
+        .drag-over { background-color: rgba(14, 165, 233, 0.1); }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white font-sans antialiased transition-colors duration-300">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="relative text-center mb-8">
+            <h1 class="text-5xl font-extrabold text-sky-600 dark:text-sky-400">SuperLista <span class="text-3xl text-amber-500">Pro</span></h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-2">Suas compras mais inteligentes.</p>
+            <div class="mt-4 flex items-center justify-center gap-2 md:absolute md:top-0 md:right-0 md:mt-0">
+                <button id="manage-categories-btn" class="p-2 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Gerir Categorias" aria-label="Gerir Categorias">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                </button>
+                <button id="manage-products-btn" class="p-2 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Gerir Produtos" aria-label="Gerir Produtos">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                </button>
+                 <button id="manage-stores-btn" class="p-2 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Gerir Lojas" aria-label="Gerir Lojas">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                </button>
+                <button id="settings-btn" class="p-2 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Definições" aria-label="Definições">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </button>
+                <button id="theme-toggle" class="p-2 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Alternar tema" aria-label="Alternar tema">
+                    <svg id="theme-icon-sun" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <svg id="theme-icon-moon" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div class="lg:col-span-1">
+                 <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Minhas Listas</h2>
+                    <div id="shopping-lists-container" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2"></div>
+                    <form id="add-list-form" class="mt-4">
+                        <input type="text" id="new-list-name" placeholder="Nome da nova lista" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                        <button type="submit" class="w-full text-white bg-sky-600 hover:bg-sky-700 p-2 mt-2 rounded-md font-semibold transition-colors">Criar Lista</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
+                <div id="active-list-view">
+                    <div id="active-list-header" class="mb-4 pb-3 border-b border-slate-200 dark:border-slate-700">
+                         <div class="flex justify-between items-start">
+                             <div>
+                                 <h2 id="active-list-title" class="text-3xl font-bold text-slate-700 dark:text-slate-300">Selecione uma lista</h2>
+                                 <div id="active-list-summary" class="text-slate-500 dark:text-slate-400 mt-1"></div>
+                             </div>
+                             <button id="shopping-mode-btn" class="hidden items-center gap-2 text-sm bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-md font-semibold transition-colors" aria-label="Ativar Modo Compras">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /></svg>
+                                <span class="hidden md:inline">Modo Compras</span>
+                             </button>
+                         </div>
+                         <div id="active-list-actions" class="mt-4 flex flex-wrap gap-2 hidden">
+                             <button data-action="print-list" class="text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 px-3 py-1 rounded-md font-semibold transition-colors">Imprimir</button>
+                             <button data-action="export-csv" class="text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 px-3 py-1 rounded-md font-semibold transition-colors">Exportar CSV</button>
+                             <button id="share-list-btn" class="text-sm bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-md font-semibold transition-colors">Partilhar</button>
+                         </div>
+                    </div>
+                    <div id="list-items-container" class="space-y-4"></div>
+                </div>
+
+                <div id="add-item-form-container" class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 hidden">
+                    <h3 class="text-xl font-semibold mb-3">Adicionar Item à Lista</h3>
+                    <form id="add-item-form" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                        <div class="sm:col-span-2 w-full space-y-2">
+                             <input type="text" id="product-search" placeholder="Buscar produto..." class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+                             <div id="add-new-product-prompt" class="hidden text-center p-2 bg-slate-100 dark:bg-slate-700 rounded-md">
+                                 <span class="text-sm">Produto não encontrado. </span>
+                                 <button type="button" data-action="quick-add-product" class="text-sm text-sky-600 dark:text-sky-400 font-semibold hover:underline">Adicionar novo?</button>
+                             </div>
+                             <select id="product-select" class="w-full bg-slate-100 dark:bg-slate-700 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+                        </div>
+                        <input type="number" id="item-quantity" value="1" min="1" class="w-full bg-slate-100 dark:bg-slate-700 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <button type="submit" class="w-full text-white bg-emerald-600 hover:bg-emerald-700 p-3 rounded-md font-semibold transition-colors sm:col-span-3">Adicionar à Lista</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="purchase-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50 opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform scale-95 opacity-0">
+            <h3 id="purchase-modal-title" class="text-2xl font-bold mb-4">Marcar Item como Comprado</h3>
+            <form id="mark-bought-form">
+                <div class="mb-4">
+                    <label for="bought-price" class="block text-slate-500 dark:text-slate-400 mb-1">Preço Pago (R$)</label>
+                    <input type="number" id="bought-price" step="0.01" placeholder="12.99" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="bought-store" class="block text-slate-500 dark:text-slate-400 mb-1">Onde comprou?</label>
+                    <select id="bought-store" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500" required></select>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Cancelar</button>
+                    <button type="submit" class="text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-md font-semibold transition-colors">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="confirm-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50 opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-sm transform scale-95 opacity-0">
+            <h3 class="text-xl font-bold mb-4">Confirmar Ação</h3>
+            <p id="confirm-modal-text" class="text-slate-600 dark:text-slate-300 mb-6">Você tem certeza?</p>
+            <div class="flex justify-end gap-4">
+                <button type="button" data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Cancelar</button>
+                <button type="button" id="confirm-ok-button" class="text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md font-semibold transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    <div id="edit-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-[60] opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform scale-95 opacity-0">
+            <h3 id="edit-modal-title" class="text-2xl font-bold mb-4">Editar</h3>
+            <form id="edit-item-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="edit-item-name" class="block text-slate-500 dark:text-slate-400 mb-1">Nome</label>
+                        <input type="text" id="edit-item-name" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                    </div>
+                    <div id="edit-brand-container" class="hidden">
+                        <label for="edit-item-brand" class="block text-slate-500 dark:text-slate-400 mb-1">Marca</label>
+                        <input type="text" id="edit-item-brand" placeholder="Opcional" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div id="edit-category-container" class="hidden">
+                        <label for="edit-item-category" class="block text-slate-500 dark:text-slate-400 mb-1">Categoria</label>
+                        <select id="edit-item-category" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Cancelar</button>
+                    <button type="submit" class="text-white bg-sky-600 hover:bg-sky-700 px-4 py-2 rounded-md font-semibold transition-colors">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="price-history-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50 opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg transform scale-95 opacity-0">
+            <h3 id="price-history-modal-title" class="text-2xl font-bold mb-4">Histórico de Preços</h3>
+            <div id="price-stats-container" class="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg mb-4 text-sm space-y-1"></div>
+            <div id="price-history-container" class="space-y-2 mb-4 max-h-60 overflow-y-auto pr-2"></div>
+             <div class="flex justify-end mt-6">
+                <button type="button" data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Fechar</button>
+            </div>
+        </div>
+    </div>
+    <div id="bulk-add-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-[60] opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg transform scale-95 opacity-0">
+            <h3 class="text-2xl font-bold mb-4">Adicionar Produtos em Massa</h3>
+            <p class="text-slate-600 dark:text-slate-300 mb-4 text-sm">Cole a sua lista abaixo. Formato: `Produto, Marca, Categoria` (marca e categoria são opcionais).</p>
+            <form id="bulk-add-form">
+                <textarea id="bulk-add-textarea" rows="8" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="Arroz, Tio João, Mercearia&#10;Feijão, Camil&#10;Sabão em Pó, Omo, Limpeza"></textarea>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Cancelar</button>
+                    <button type="submit" class="text-white bg-sky-600 hover:bg-sky-700 px-4 py-2 rounded-md font-semibold transition-colors">Adicionar Produtos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="settings-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-[60] opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform scale-95 opacity-0">
+            <h3 class="text-2xl font-bold mb-4">Definições</h3>
+            <div class="space-y-4">
+                <h4 class="font-semibold mb-2 text-slate-600 dark:text-slate-300">Gestão de Dados</h4>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Guarde todos os seus dados num ficheiro ou carregue um backup.</p>
+                <div class="flex flex-wrap gap-2">
+                    <button id="export-data-btn" class="w-full sm:w-auto flex-grow text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md font-semibold transition-colors">Exportar Backup</button>
+                    <label class="w-full sm:w-auto flex-grow text-white text-center bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer">
+                        <span>Importar Backup</span>
+                        <input type="file" id="import-data-input" class="hidden" accept=".json">
+                    </label>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Fechar</button>
+            </div>
+        </div>
+    </div>
+    <div id="manage-products-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-[60] opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl transform scale-95 opacity-0">
+            <h3 class="text-2xl font-bold mb-4">Gerir Meus Produtos</h3>
+            <div class="max-h-[70vh] overflow-y-auto pr-2">
+                <div id="products-container" class="space-y-2 text-sm mb-4"></div>
+                <div id="bulk-actions-container" class="mt-4 flex gap-2">
+                     <button id="bulk-add-btn" class="text-sm w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 px-3 py-1 rounded-md font-semibold transition-colors">Adicionar Vários</button>
+                     <button id="bulk-delete-toggle-btn" class="text-sm w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 px-3 py-1 rounded-md font-semibold transition-colors">Excluir Vários</button>
+                </div>
+                 <div id="bulk-delete-actions-container" class="mt-4 flex gap-2 hidden">
+                     <button id="bulk-delete-confirm-btn" class="text-sm w-full text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded-md font-semibold transition-colors">Excluir Selecionados</button>
+                     <button id="bulk-delete-cancel-btn" class="text-sm w-full bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-3 py-1 rounded-md font-semibold transition-colors">Cancelar</button>
+                </div>
+                <form id="add-product-form" class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h4 class="font-semibold mb-2">Adicionar Novo Produto</h4>
+                    <input type="text" id="new-product-name" placeholder="Nome do produto" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                    <input type="text" id="new-product-brand" placeholder="Marca (opcional)" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <select id="new-product-category" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+                    <button type="submit" class="w-full text-white bg-indigo-600 hover:bg-indigo-700 p-2 mt-2 rounded-md font-semibold transition-colors">Adicionar Produto</button>
+                </form>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Fechar</button>
+            </div>
+        </div>
+    </div>
+     <div id="manage-stores-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-[60] opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg transform scale-95 opacity-0">
+            <h3 class="text-2xl font-bold mb-4">Gerir Minhas Lojas</h3>
+            <div class="max-h-[70vh] overflow-y-auto pr-2">
+                <div id="stores-container" class="space-y-2 text-sm mb-4"></div>
+                <form id="add-store-form" class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h4 class="font-semibold mb-2">Adicionar Nova Loja</h4>
+                    <input type="text" id="new-store-name" placeholder="Nome da loja" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                    <button type="submit" class="w-full text-white bg-teal-600 hover:bg-teal-700 p-2 mt-2 rounded-md font-semibold transition-colors">Adicionar Loja</button>
+                </form>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Fechar</button>
+            </div>
+        </div>
+    </div>
+     <div id="manage-categories-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-[60] opacity-0">
+        <div class="modal-content bg-white dark:bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-lg transform scale-95 opacity-0">
+            <h3 class="text-2xl font-bold mb-4">Gerir Minhas Categorias</h3>
+            <div class="max-h-[70vh] overflow-y-auto pr-2">
+                <div id="categories-container" class="space-y-2 text-sm mb-4"></div>
+                <form id="add-category-form" class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h4 class="font-semibold mb-2">Adicionar Nova Categoria</h4>
+                    <input type="text" id="new-category-name" placeholder="Nome da categoria" class="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-sky-500" required>
+                    <button type="submit" class="w-full text-white bg-purple-600 hover:bg-purple-700 p-2 mt-2 rounded-md font-semibold transition-colors">Adicionar Categoria</button>
+                </form>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button data-action="close-modal" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-700 px-4 py-2 rounded-md font-semibold transition-colors">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast fixed bottom-5 left-1/2 -translate-x-1/2 text-white py-2 px-5 rounded-full shadow-lg z-[70]"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let state = {};
+        const defaultData = {
+            products: [{ id: "prod-1", name: 'Leite Integral', brand: 'Parmalat', categoryId: 'cat-1' }],
+            stores: [{ id: "store-1", name: 'Supermercado Dia' }],
+            categories: [{ id: "cat-1", name: 'Laticínios' }],
+            shoppingLists: [{ id: "list-1", name: 'Compras da Semana', categoryOrder: [], isShoppingMode: false }],
+            shoppingListItems: [{ id: "item-1", listId: "list-1", productId: "prod-1", quantity: 2, isBought: false }],
+            priceHistory: [],
+            currentListId: null, itemToMark: null, itemToEdit: null, productForHistory: null, isBulkDeletingProducts: false
+        };
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
+        let onConfirmCallback = null;
+        let draggedElement = null;
+
+        function saveState() {
+            const stateToSave = { ...state };
+            delete stateToSave.itemToMark; delete stateToSave.itemToEdit; delete stateToSave.productForHistory;
+            localStorage.setItem('superlista_pro_data', JSON.stringify(stateToSave));
+        }
+
+        function loadState() {
+            const savedData = localStorage.getItem('superlista_pro_data');
+            const parsedData = savedData ? JSON.parse(savedData) : {};
+            state = { ...defaultData, ...parsedData };
+            if (!state.priceHistory) state.priceHistory = [];
+            if (!state.categories) state.categories = [];
+            if (!state.shoppingLists) state.shoppingLists = [];
+            state.shoppingLists.forEach(list => {
+                if (list.isShoppingMode === undefined) list.isShoppingMode = false;
+                if (!list.categoryOrder) list.categoryOrder = [];
+            });
+            state.isBulkDeletingProducts = false;
+        }
+
+        function renderAll() { renderShoppingLists(); renderActiveList(); updateProductSelect(); }
+        
+        function renderShoppingLists() {
+            const container = $('#shopping-lists-container');
+            if (state.shoppingLists.length === 0) { container.innerHTML = `<p class="text-slate-500 dark:text-slate-400 text-center text-sm">Crie sua primeira lista no formulário abaixo.</p>`; return; }
+            container.innerHTML = state.shoppingLists.map(list => {
+                const isActive = list.id === state.currentListId;
+                return `<div class="flex justify-between items-center p-3 rounded-lg cursor-pointer transition-all ${isActive ? "bg-sky-500 text-white font-bold" : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600"}" data-action="select-list" data-list-id="${list.id}"><span class="flex-grow mr-2 truncate">${list.name}</span><div class="flex items-center gap-3"><button class="text-slate-500 hover:text-sky-500" data-action="edit-list" data-list-id="${list.id}" aria-label="Editar lista"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button><button class="text-red-500/70 hover:text-red-500 text-xs font-bold" data-action="delete-list" data-list-id="${list.id}" aria-label="Apagar lista">X</button></div></div>`;
+            }).join('');
+        }
+
+        function renderActiveList() {
+            const titleEl = $("#active-list-title"), summaryEl = $("#active-list-summary"), itemsContainer = $("#list-items-container");
+            const formContainer = $("#add-item-form-container"), actionsContainer = $("#active-list-actions"), shoppingModeBtn = $('#shopping-mode-btn');
+            if (state.currentListId === null) {
+                titleEl.textContent = "Selecione uma lista"; summaryEl.textContent = "";
+                itemsContainer.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center mt-8">Os itens da sua lista aparecerão aqui.</p>';
+                formContainer.classList.add("hidden"); actionsContainer.classList.add("hidden"); shoppingModeBtn.classList.add("hidden"); return;
+            }
+            const currentList = state.shoppingLists.find(list => list.id === state.currentListId);
+            if (!currentList) { state.currentListId = null; renderActiveList(); return; }
+            titleEl.textContent = currentList.name;
+            shoppingModeBtn.classList.remove("hidden");
+            shoppingModeBtn.classList.toggle('bg-green-600', currentList.isShoppingMode);
+            shoppingModeBtn.classList.toggle('hover:bg-green-700', currentList.isShoppingMode);
+            formContainer.classList.toggle("hidden", currentList.isShoppingMode);
+            actionsContainer.classList.toggle("hidden", currentList.isShoppingMode);
+            const listItems = state.shoppingListItems.filter(item => item.listId === state.currentListId);
+            if (listItems.length === 0) {
+                itemsContainer.innerHTML = `<p class="text-slate-500 dark:text-slate-400 text-center mt-8">Esta lista está vazia. ${currentList.isShoppingMode ? '' : 'Adicione um item abaixo!'}</p>`;
+                summaryEl.textContent = "Total Gasto: R$ 0.00 (0 de 0 itens)"; return;
+            }
+            let totalSpent = 0, boughtCount = 0;
+            const itemsByCategory = listItems.reduce((acc, item) => {
+                const product = state.products.find(p => p.id === item.productId);
+                if (!product) return acc;
+                const categoryId = product.categoryId || 'cat-uncategorized';
+                if (!acc[categoryId]) acc[categoryId] = [];
+                acc[categoryId].push(item);
+                return acc;
+            }, {});
+            const uncatId = 'cat-uncategorized'; state.categories.push({ id: uncatId, name: 'Sem Categoria' });
+            let sortedCategoryIds = Object.keys(itemsByCategory);
+            if (currentList.categoryOrder && currentList.categoryOrder.length > 0) {
+                sortedCategoryIds.sort((a, b) => {
+                    const indexA = currentList.categoryOrder.indexOf(a); const indexB = currentList.categoryOrder.indexOf(b);
+                    if (indexA === -1 && indexB === -1) { const catA = state.categories.find(c => c.id === a)?.name || ''; const catB = state.categories.find(c => c.id === b)?.name || ''; return catA.localeCompare(catB); }
+                    if (indexA === -1) return 1; if (indexB === -1) return -1;
+                    return indexA - indexB;
+                });
+            } else {
+                sortedCategoryIds.sort((a, b) => {
+                    if (a === uncatId) return 1; if (b === uncatId) return -1;
+                    const catA = state.categories.find(c => c.id === a)?.name || ''; const catB = state.categories.find(c => c.id === b)?.name || '';
+                    return catA.localeCompare(catB);
+                });
+            }
+            state.categories.pop();
+            itemsContainer.innerHTML = '';
+            sortedCategoryIds.forEach(catId => {
+                const category = state.categories.find(c => c.id === catId) || { name: 'Sem Categoria' };
+                const categoryWrapper = document.createElement('div');
+                categoryWrapper.className = `category-block rounded-lg ${currentList.isShoppingMode ? '' : 'p-2 border border-slate-200 dark:border-slate-700'}`;
+                categoryWrapper.dataset.categoryId = catId;
+                if (!currentList.isShoppingMode) { categoryWrapper.setAttribute('draggable', true); categoryWrapper.classList.add('category-draggable'); }
+                const itemsNotBought = itemsByCategory[catId].filter(i => !i.isBought);
+                const itemsBought = itemsByCategory[catId].filter(i => i.isBought);
+                let categoryHTML = `<h3 class="text-xl font-semibold text-sky-600 dark:text-sky-400 pb-1 mb-2 ${!currentList.isShoppingMode ? 'cursor-grab' : ''}">${category.name}</h3>`;
+                itemsNotBought.forEach(item => { const product = state.products.find(p => p.id === item.productId); categoryHTML += renderItem(item, product, currentList.isShoppingMode); });
+                if (itemsBought.length > 0) {
+                    itemsBought.forEach(item => { if (item.isBought) { boughtCount++; const latestPurchase = state.priceHistory.filter(p => p.productId === item.productId).sort((a, b) => new Date(b.date) - new Date(a.date))[0]; if (latestPurchase) totalSpent += Number(latestPurchase.price) * Number(item.quantity); } });
+                    categoryHTML += `<details ${currentList.isShoppingMode ? 'open' : ''} class="mt-2"><summary class="text-sm text-slate-500 cursor-pointer">Itens no carrinho (${itemsBought.length})</summary><div class="mt-2 space-y-3">`;
+                    itemsBought.forEach(item => { const product = state.products.find(p => p.id === item.productId); categoryHTML += renderItem(item, product, currentList.isShoppingMode); });
+                    categoryHTML += `</div></details>`;
+                }
+                categoryWrapper.innerHTML = categoryHTML;
+                itemsContainer.appendChild(categoryWrapper);
+            });
+            summaryEl.textContent = `Total Gasto (aprox.): R$ ${totalSpent.toFixed(2)} (${boughtCount} de ${listItems.length} itens)`;
+        }
+
+        function renderItem(item, product, isShoppingMode) {
+            const textClass = isShoppingMode ? 'text-lg' : 'text-base'; const checkboxClass = isShoppingMode ? 'h-7 w-7' : 'h-6 w-6';
+            return `<div class="flex items-center justify-between p-3 rounded-lg transition-all ${item.isBought ? "bg-slate-100/80 dark:bg-slate-700/80" : "bg-slate-100/50 dark:bg-slate-700/50"}"><div class="flex items-center gap-4 flex-grow min-w-0"><input type="checkbox" ${item.isBought ? "checked" : ""} data-item-id="${item.id}" data-action="toggle-bought" class="${checkboxClass} shrink-0 rounded-md bg-slate-200 dark:bg-slate-600 border-slate-400 dark:border-slate-500 text-emerald-500 focus:ring-emerald-500 cursor-pointer"><div class="item-details ${item.isBought ? "item-comprado" : ""} truncate"><p class="font-bold ${textClass} truncate">${product.name}</p><p class="text-sm text-slate-500 dark:text-slate-400 truncate">Quantidade: ${item.quantity}</p></div></div>${!isShoppingMode ? `<button class="text-red-500/70 hover:text-red-500 font-semibold ml-4 shrink-0" data-action="delete-item" data-item-id="${item.id}">Remover</button>` : ''}</div>`;
+        }
+
+        function updateProductSelect(filteredProducts = null) {
+            const productsToRender = filteredProducts || state.products; const select = $('#product-select');
+            $('#add-new-product-prompt').classList.add('hidden');
+            if (productsToRender.length === 0) {
+                select.innerHTML = `<option value="">Nenhum produto para mostrar</option>`;
+                if ($('#product-search').value.trim() !== '') { $('#add-new-product-prompt').classList.remove('hidden'); }
+                return;
+            }
+            select.innerHTML = productsToRender.map(p => {
+                const prices = state.priceHistory.filter(pp => pp.productId === p.id); let priceInfo = '';
+                if (prices.length > 0) { const minPrice = Math.min(...prices.map(pr => Number(pr.price))); priceInfo = ` - Menor preço: R$ ${minPrice.toFixed(2)}`; }
+                return `<option value="${p.id}">${p.name} ${p.brand ? `(${p.brand})` : ''}${priceInfo}</option>`
+            }).join('');
+        }
+
+        function renderStores() {
+            const container = $('#stores-container');
+            if (state.stores.length === 0) { container.innerHTML = `<p class="text-slate-500 dark:text-slate-400 text-center text-sm">Nenhuma loja cadastrada. Adicione uma no formulário abaixo.</p>`; return; }
+            container.innerHTML = state.stores.map(store => `<div class="bg-slate-100 dark:bg-slate-700 p-2 rounded flex justify-between items-center"><span class="truncate">${store.name}</span><div class="flex items-center gap-3"><button data-action="edit-store" data-store-id="${store.id}" class="text-slate-500 hover:text-sky-500" aria-label="Editar loja"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button><button data-action="delete-store" data-store-id="${store.id}" class="text-red-500/70 hover:text-red-500" aria-label="Apagar loja"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></div>`).join('');
+        }
+
+        function renderCategories() {
+            const container = $('#categories-container');
+            if (state.categories.length === 0) { container.innerHTML = `<p class="text-slate-500 dark:text-slate-400 text-center text-sm">Nenhuma categoria cadastrada. Adicione uma no formulário abaixo.</p>`; return; }
+            container.innerHTML = state.categories.map(cat => `<div class="bg-slate-100 dark:bg-slate-700 p-2 rounded flex justify-between items-center"><span class="truncate">${cat.name}</span><div class="flex items-center gap-3"><button data-action="edit-category" data-category-id="${cat.id}" class="text-slate-500 hover:text-sky-500" aria-label="Editar categoria"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button><button data-action="delete-category" data-category-id="${cat.id}" class="text-red-500/70 hover:text-red-500" aria-label="Apagar categoria"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></div>`).join('');
+        }
+
+        function renderProducts() {
+            const container = $('#products-container');
+            if (state.products.length === 0) { container.innerHTML = `<p class="text-slate-500 dark:text-slate-400 text-center text-sm">Nenhum produto cadastrado. Adicione um no formulário abaixo.</p>`; return; }
+            container.innerHTML = state.products.map(product => {
+                const category = state.categories.find(c => c.id === product.categoryId);
+                if (state.isBulkDeletingProducts) {
+                    return `<div class="bg-slate-100 dark:bg-slate-700 p-2 rounded flex justify-between items-center"><label class="flex items-center gap-3 w-full cursor-pointer"><input type="checkbox" value="${product.id}" class="bulk-product-checkbox h-4 w-4 rounded bg-slate-200 dark:bg-slate-600 border-slate-400 dark:border-slate-500 text-sky-500 focus:ring-sky-500"><span class="truncate"><span class="font-semibold">${product.name}</span> ${product.brand ? `<span class="text-slate-500 dark:text-slate-400">- ${product.brand}</span>` : ""} ${category ? `<span class="text-xs text-white bg-sky-500 px-1.5 py-0.5 rounded-full ml-2">${category.name}</span>` : ""}</span></label></div>`;
+                }
+                return `<div class="bg-slate-100 dark:bg-slate-700 p-2 rounded flex justify-between items-center"><span class="truncate"><span class="font-semibold">${product.name}</span> ${product.brand ? `<span class="text-slate-500 dark:text-slate-400">- ${product.brand}</span>` : ""} ${category ? `<span class="text-xs text-white bg-sky-500 px-1.5 py-0.5 rounded-full ml-2">${category.name}</span>` : ""}</span><div class="flex items-center gap-3"><button data-action="show-price-history" data-product-id="${product.id}" class="text-slate-500 hover:text-teal-500" aria-label="Histórico de Preços"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg></button><button data-action="edit-product" data-product-id="${product.id}" class="text-slate-500 hover:text-sky-500" aria-label="Editar produto"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button><button data-action="delete-product" data-product-id="${product.id}" class="text-red-500/70 hover:text-red-500" aria-label="Apagar produto"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></div>`;
+            }).join('');
+        }
+
+        function renderPriceHistory() {
+            const history = state.priceHistory.filter(p => p.productId === state.productForHistory).sort((a, b) => new Date(b.date) - new Date(a.date));
+            const statsContainer = $('#price-stats-container'), historyContainer = $('#price-history-container');
+            if (history.length === 0) {
+                statsContainer.innerHTML = ''; historyContainer.innerHTML = `<p class="text-slate-500 dark:text-slate-400 text-center text-sm">Nenhum preço registado para este produto.</p>`; return;
+            }
+            const prices = history.map(p => p.price); const minPrice = Math.min(...prices); const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length; const latestPrice = prices[0]; const minPriceRecord = history.find(p => p.price === minPrice); const minPriceStore = state.stores.find(s => s.id === minPriceRecord.storeId);
+            statsContainer.innerHTML = `<div class="flex justify-between"><span>Último Preço:</span> <span class="font-bold">R$ ${latestPrice.toFixed(2)}</span></div><div class="flex justify-between"><span>Preço Médio:</span> <span class="font-bold">R$ ${avgPrice.toFixed(2)}</span></div><div class="flex justify-between text-green-600 dark:text-green-400"><span>Menor Preço:</span> <span class="font-bold">R$ ${minPrice.toFixed(2)}</span></div><div class="text-xs text-slate-500 dark:text-slate-400 text-right">Em ${minPriceStore.name} em ${new Date(minPriceRecord.date).toLocaleDateString()}</div>`;
+            historyContainer.innerHTML = history.map(rec => {
+                const store = state.stores.find(s => s.id === rec.storeId);
+                return `<div class="bg-slate-100 dark:bg-slate-700 p-2 rounded flex justify-between items-center text-sm"><div><span class="font-semibold">${store ? store.name : 'Loja desconhecida'}</span><span class="text-slate-500 dark:text-slate-400 text-xs ml-2">${new Date(rec.date).toLocaleDateString()}</span></div><span class="font-semibold">R$ ${Number(rec.price).toFixed(2)}</span></div>`;
+            }).join('');
+        }
+
+        function openModal(modalId, focusElId) {
+            const backdrop = $(`#${modalId}`); if (!backdrop) return;
+            backdrop.classList.remove('hidden');
+            setTimeout(() => {
+                backdrop.classList.remove('opacity-0'); backdrop.querySelector('.modal-content').classList.remove('scale-95', 'opacity-0');
+                if (focusElId) requestAnimationFrame(() => $(`#${focusElId}`).focus());
+            }, 10);
+        }
+
+        function closeModal(modalId) {
+            const backdrop = $(`#${modalId}`); if (!backdrop) return;
+            backdrop.classList.add('opacity-0'); backdrop.querySelector('.modal-content').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                backdrop.classList.add('hidden');
+                if (modalId === 'purchase-modal') state.itemToMark = null; if (modalId === 'edit-modal') state.itemToEdit = null;
+            }, 300);
+        }
+
+        function showConfirmationModal(text, callback) { $("#confirm-modal-text").textContent = text; onConfirmCallback = callback; openModal('confirm-modal'); }
+        let toastTimeout;
+        function showToast(message, type = 'success') {
+            const toastEl = $('#toast'); toastEl.textContent = message;
+            toastEl.className = `toast fixed bottom-5 left-1/2 -translate-x-1/2 text-white py-2 px-5 rounded-full shadow-lg z-[70]`;
+            if (type === 'error') toastEl.classList.add('bg-red-600'); else if (type === 'info') toastEl.classList.add('bg-blue-600'); else toastEl.classList.add('bg-slate-700');
+            toastEl.classList.add('show'); clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 3000);
+        }
+
+        function handleExportData() {
+            const dataStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `superlista_pro_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("Backup exportado com sucesso!");
+        }
+
+        function handleImportData(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.products && importedData.categories && importedData.shoppingLists) {
+                        showConfirmationModal("Importar backup irá substituir todos os dados atuais. Deseja continuar?", () => {
+                            state = { ...defaultData, ...importedData };
+                            saveState();
+                            showToast("Dados importados! A página será recarregada.");
+                            setTimeout(() => location.reload(), 1500);
+                        });
+                    } else { showToast("Ficheiro de backup inválido ou incompatível.", 'error'); }
+                } catch (error) { showToast("Erro ao ler o ficheiro de backup.", 'error'); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        async function handleShareList() {
+            if (state.currentListId === null) { showToast("Selecione uma lista para partilhar.", 'info'); return; }
+            const list = state.shoppingLists.find(l => l.id === state.currentListId);
+            const items = state.shoppingListItems.filter(i => i.listId === state.currentListId);
+            let textToShare = `*${list.name}*\n\n`;
+            items.forEach(item => {
+                const product = state.products.find(p => p.id === item.productId);
+                if (product) { textToShare += `- ${item.quantity}x ${product.name} ${product.brand ? `(${product.brand})` : ''}\n`; }
+            });
+            if (navigator.share) {
+                try { await navigator.share({ title: list.name, text: textToShare }); }
+                catch (error) { showToast('Partilha cancelada.', 'info'); }
+            } else { showToast('A partilha não é suportada neste navegador.', 'info'); }
+        }
+
+        function handlePrintList() {
+            if (state.currentListId === null) return;
+            const list = state.shoppingLists.find(l => l.id === state.currentListId);
+            const items = state.shoppingListItems.filter(i => i.listId === state.currentListId);
+            let content = `<h1>${list.name}</h1><ul>`;
+            items.forEach(item => {
+                const product = state.products.find(p => p.id === item.productId);
+                if (product) { content += `<li>[  ] ${item.quantity}x ${product.name} ${product.brand ? `(${product.brand})` : ""}</li>`; }
+            });
+            content += "</ul><style>body{font-family:sans-serif; line-height: 1.5;} li{margin: 8px 0;}</style>";
+            const printWindow = window.open("", "", "height=600,width=800");
+            printWindow.document.write(content);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function handleExportCSV() {
+            if (state.currentListId === null) return;
+            const list = state.shoppingLists.find(l => l.id === state.currentListId);
+            const items = state.shoppingListItems.filter(i => i.listId === state.currentListId);
+            let csvContent = "data:text/csv;charset=utf-8,Produto,Marca,Categoria,Quantidade,Comprado\n";
+            items.forEach(item => {
+                const product = state.products.find(p => p.id === item.productId); if (!product) return;
+                const category = product.categoryId ? state.categories.find(c => c.id === product.categoryId) : { name: "" };
+                const row = [`"${product.name.replace(/"/g, '""')}"`, `"${product.brand ? product.brand.replace(/"/g, '""') : ""}"`, `"${category ? category.name.replace(/"/g, '""') : ""}"`, item.quantity, item.isBought ? "Sim" : "Não"].join(",");
+                csvContent += row + "\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${list.name.replace(/\s+/g, "_").toLowerCase()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        const handleSelectList = (listId) => { state.currentListId = listId; saveState(); renderAll(); };
+        const handleDeleteList = (listId) => showConfirmationModal('Tem certeza que deseja apagar esta lista e todos os seus itens?', () => { state.shoppingLists = state.shoppingLists.filter(l => l.id !== listId); state.shoppingListItems = state.shoppingListItems.filter(i => i.listId !== listId); if (state.currentListId === listId) { state.currentListId = null; } saveState(); renderAll(); showToast("Lista apagada.", "error"); });
+        const handleDeleteStore = (storeId) => showConfirmationModal('Apagar esta loja irá remover o seu histórico de preços. Certeza?', () => { state.stores = state.stores.filter(s => s.id !== storeId); state.priceHistory = state.priceHistory.filter(p => p.storeId !== storeId); saveState(); renderAll(); renderStores(); showToast('Loja apagada.', 'error'); });
+        const handleDeleteProduct = (productId) => showConfirmationModal('Apagar este produto irá removê-lo de TODAS as listas e do histórico. Certeza?', () => { state.products = state.products.filter(p => p.id !== productId); state.shoppingListItems = state.shoppingListItems.filter(i => i.productId !== productId); state.priceHistory = state.priceHistory.filter(p => p.productId !== productId); saveState(); renderAll(); renderProducts(); showToast('Produto apagado.', 'error'); });
+        const handleDeleteCategory = (catId) => showConfirmationModal('Apagar esta categoria irá desassociá-la de todos os produtos. Certeza?', () => { state.categories = state.categories.filter(c => c.id !== catId); state.products.forEach(p => { if (p.categoryId === catId) p.categoryId = null; }); saveState(); renderAll(); renderCategories(); showToast('Categoria apagada.', 'error'); });
+        const handleDeleteItem = (itemId) => { state.shoppingListItems = state.shoppingListItems.filter(i => i.id !== itemId); saveState(); renderActiveList(); showToast("Item removido.", "info"); };
+        const handleToggleShoppingMode = () => { if(!state.currentListId) return; const list = state.shoppingLists.find(l => l.id === state.currentListId); if(list) { list.isShoppingMode = !list.isShoppingMode; saveState(); renderActiveList(); }};
+
+        function handleEdit(type, id) {
+            state.itemToEdit = { type, id };
+            const nameInput = $('#edit-item-name'), brandContainer = $('#edit-brand-container'), categoryContainer = $('#edit-category-container');
+            let item; brandContainer.classList.add('hidden'); categoryContainer.classList.add('hidden');
+            switch (type) {
+                case 'list': item = state.shoppingLists.find(i => i.id === id); $('#edit-modal-title').textContent = "Editar Lista"; break;
+                case 'store': item = state.stores.find(i => i.id === id); $('#edit-modal-title').textContent = "Editar Loja"; break;
+                case 'category': item = state.categories.find(i => i.id === id); $('#edit-modal-title').textContent = "Editar Categoria"; break;
+                case 'product':
+                    item = state.products.find(i => i.id === id); $('#edit-modal-title').textContent = id ? "Editar Produto" : "Adicionar Produto";
+                    brandContainer.classList.remove('hidden'); categoryContainer.classList.remove('hidden');
+                    $('#edit-item-brand').value = item?.brand || '';
+                    const catSelect = $('#edit-item-category');
+                    catSelect.innerHTML = `<option value="">Sem categoria</option>` + state.categories.map(c => `<option value="${c.id}" ${item && c.id === item.categoryId ? 'selected' : ''}>${c.name}</option>`).join('');
+                    break;
+            }
+            if (!item && id) return;
+            nameInput.value = item?.name || '';
+            openModal('edit-modal', 'edit-item-name');
+        }
+
+        function handleToggleBought(itemId) {
+            const item = state.shoppingListItems.find(i => i.id === itemId); if (!item) return;
+            if (item.isBought) { item.isBought = false; saveState(); renderAll(); }
+            else {
+                state.itemToMark = item;
+                const product = state.products.find(p => p.id === item.productId);
+                $('#purchase-modal-title').textContent = `Comprar: ${product.name}`;
+                $('#bought-store').innerHTML = state.stores.length > 0 ? state.stores.map(s => `<option value="${s.id}">${s.name}</option>`).join('') : '<option value="">Nenhuma loja cadastrada</option>';
+                $('#bought-price').value = '';
+                openModal('purchase-modal', 'bought-price');
+            }
+        }
+
+        function handleShowPriceHistory(productId) {
+            state.productForHistory = productId;
+            const product = state.products.find(p => p.id === productId); if (!product) return;
+            $('#price-history-modal-title').textContent = `Histórico de: ${product.name}`;
+            renderPriceHistory();
+            openModal('price-history-modal');
+        }
+
+        function initialize() {
+            const themeToggle = $('#theme-toggle');
+            document.body.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-action]'); if (!button) return;
+                e.stopPropagation();
+                const action = button.dataset.action;
+                const id = button.dataset.listId || button.dataset.itemId || button.dataset.storeId || button.dataset.productId || button.dataset.categoryId;
+                const actions = {
+                    'select-list': () => handleSelectList(id), 'edit-list': () => handleEdit('list', id), 'delete-list': () => handleDeleteList(id),
+                    'toggle-bought': () => handleToggleBought(id), 'delete-item': () => handleDeleteItem(id),
+                    'edit-store': () => handleEdit('store', id), 'delete-store': () => handleDeleteStore(id),
+                    'edit-category': () => handleEdit('category', id), 'delete-category': () => handleDeleteCategory(id),
+                    'edit-product': () => handleEdit('product', id), 'delete-product': () => handleDeleteProduct(id),
+                    'show-price-history': () => handleShowPriceHistory(id),
+                    'quick-add-product': () => { const searchVal = $('#product-search').value; handleEdit('product'); $('#edit-item-name').value = searchVal; },
+                    'print-list': handlePrintList,
+                    'export-csv': handleExportCSV,
+                    'close-modal': () => closeModal(button.closest('.modal-backdrop').id),
+                };
+                if (actions[action]) actions[action]();
+            });
+            $$('.modal-backdrop').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); }));
+            $('#add-list-form').addEventListener('submit', e => { e.preventDefault(); const input = $('#new-list-name'); const name = input.value.trim(); if (name) { state.shoppingLists.push({ id: crypto.randomUUID(), name, categoryOrder: [], isShoppingMode: false }); input.value = ''; saveState(); renderAll(); showToast('Lista criada!'); } });
+            $('#add-item-form').addEventListener('submit', e => { e.preventDefault(); if (state.currentListId === null) return; const productId = $('#product-select').value; const quantity = parseInt($('#item-quantity').value, 10); if (productId && quantity > 0) { state.shoppingListItems.push({ id: crypto.randomUUID(), listId: state.currentListId, productId, quantity, isBought: false }); $('#item-quantity').value = '1'; saveState(); renderActiveList(); showToast('Item adicionado à lista!'); } });
+            $('#add-store-form').addEventListener('submit', e => { e.preventDefault(); const input = $('#new-store-name'); const name = input.value.trim(); if (name) { state.stores.push({ id: crypto.randomUUID(), name }); input.value = ''; saveState(); renderStores(); showToast('Loja adicionada!'); } });
+            $('#add-category-form').addEventListener('submit', e => { e.preventDefault(); const input = $('#new-category-name'); const name = input.value.trim(); if (name) { state.categories.push({ id: crypto.randomUUID(), name }); input.value = ''; saveState(); renderCategories(); showToast('Categoria adicionada!'); } });
+            $('#add-product-form').addEventListener('submit', e => { e.preventDefault(); const nameInput = $('#new-product-name'), brandInput = $('#new-product-brand'), catInput = $('#new-product-category'); const name = nameInput.value.trim(), brand = brandInput.value.trim(), categoryId = catInput.value; if (name) { state.products.push({ id: crypto.randomUUID(), name, brand, categoryId: categoryId || null }); nameInput.value = ''; brandInput.value = ''; catInput.value = ''; saveState(); renderProducts(); updateProductSelect(); showToast('Produto adicionado!'); } });
+            $('#mark-bought-form').addEventListener('submit', e => { e.preventDefault(); const item = state.itemToMark; if (!item) return; const price = parseFloat($('#bought-price').value); const storeId = $('#bought-store').value; if (isNaN(price) || !storeId) { showToast('Preencha todos os campos', 'error'); return; } item.isBought = true; state.priceHistory.push({ id: crypto.randomUUID(), productId: item.productId, storeId, price, date: new Date().toISOString() }); closeModal('purchase-modal'); saveState(); renderAll(); });
+            $('#edit-item-form').addEventListener('submit', e => { e.preventDefault(); const { type, id } = state.itemToEdit; let item; switch (type) { case 'list': item = state.shoppingLists.find(i => i.id === id); break; case 'store': item = state.stores.find(i => i.id === id); break; case 'category': item = state.categories.find(i => i.id === id); break; case 'product': item = state.products.find(i => i.id === id); if(!item) { item = { id: crypto.randomUUID() }; state.products.push(item); } item.brand = $('#edit-item-brand').value.trim(); item.categoryId = $('#edit-item-category').value || null; break; } if (item) { item.name = $('#edit-item-name').value.trim(); } closeModal('edit-modal'); saveState(); renderAll(); renderProducts(); renderStores(); renderCategories(); });
+            $('#bulk-add-form').addEventListener('submit', e => { e.preventDefault(); const text = $('#bulk-add-textarea').value.trim(); if (!text) return; const lines = text.split('\n'); let count = 0; lines.forEach(line => { if (line.trim()) { const [name, brand, categoryName] = line.split(',').map(s => s.trim()); let categoryId = null; if (categoryName) { let cat = state.categories.find(c => c.name.toLowerCase() === categoryName.toLowerCase()); if (!cat) { cat = { id: crypto.randomUUID(), name: categoryName }; state.categories.push(cat); } categoryId = cat.id; } state.products.push({ id: crypto.randomUUID(), name, brand: brand || '', categoryId }); count++; } }); closeModal('bulk-add-modal'); saveState(); renderProducts(); updateProductSelect(); renderCategories(); showToast(`${count} produtos adicionados!`); $('#bulk-add-textarea').value = ''; });
+            $('#shopping-mode-btn').addEventListener('click', handleToggleShoppingMode);
+            $('#settings-btn').addEventListener('click', () => openModal('settings-modal'));
+            $('#manage-products-btn').addEventListener('click', () => { $('#new-product-category').innerHTML = `<option value="">Sem categoria</option>` + state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join(''); renderProducts(); openModal('manage-products-modal', 'new-product-name'); });
+            $('#manage-stores-btn').addEventListener('click', () => { renderStores(); openModal('manage-stores-modal', 'new-store-name'); });
+            $('#manage-categories-btn').addEventListener('click', () => { renderCategories(); openModal('manage-categories-modal', 'new-category-name'); });
+            themeToggle.addEventListener('click', () => { document.documentElement.classList.toggle('dark'); syncTheme(); });
+            $('#export-data-btn').addEventListener('click', handleExportData);
+            $('#import-data-input').addEventListener('change', handleImportData);
+            $('#share-list-btn').addEventListener('click', handleShareList);
+            $('#confirm-ok-button').addEventListener('click', () => { if (typeof onConfirmCallback === 'function') { onConfirmCallback(); onConfirmCallback = null; } closeModal('confirm-modal'); });
+            $('#product-search').addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); const filtered = state.products.filter(p => p.name.toLowerCase().includes(searchTerm) || (p.brand && p.brand.toLowerCase().includes(searchTerm))); updateProductSelect(filtered); });
+            $('#bulk-add-btn').addEventListener('click', () => openModal('bulk-add-modal', 'bulk-add-textarea'));
+            $('#bulk-delete-toggle-btn').addEventListener('click', () => { state.isBulkDeletingProducts = true; $('#bulk-actions-container').classList.add('hidden'); $('#bulk-delete-actions-container').classList.remove('hidden'); renderProducts(); });
+            $('#bulk-delete-cancel-btn').addEventListener('click', () => { state.isBulkDeletingProducts = false; $('#bulk-actions-container').classList.remove('hidden'); $('#bulk-delete-actions-container').classList.add('hidden'); renderProducts(); });
+            $('#bulk-delete-confirm-btn').addEventListener('click', () => { const idsToDelete = [...$$('.bulk-product-checkbox:checked')].map(cb => cb.value); if (idsToDelete.length === 0) return showToast('Nenhum produto selecionado.', 'info'); showConfirmationModal(`Apagar ${idsToDelete.length} produtos? Isto irá removê-los de todas as listas e do histórico.`, () => { state.products = state.products.filter(p => !idsToDelete.includes(p.id)); state.shoppingListItems = state.shoppingListItems.filter(i => !idsToDelete.includes(i.productId)); state.priceHistory = state.priceHistory.filter(p => !idsToDelete.includes(p.productId)); state.isBulkDeletingProducts = false; $('#bulk-actions-container').classList.remove('hidden'); $('#bulk-delete-actions-container').classList.add('hidden'); saveState(); renderAll(); showToast(`${idsToDelete.length} produtos apagados.`, 'error'); }); });
+            const syncTheme = () => { const isDark = document.documentElement.classList.contains("dark"); $('#theme-icon-moon').classList.toggle("hidden", !isDark); $('#theme-icon-sun').classList.toggle("hidden", isDark); localStorage.setItem("superlista_theme", isDark ? "dark" : "light"); };
+            const container = $('#list-items-container');
+            container.addEventListener('dragstart', e => { if (e.target.classList.contains('category-draggable')) { draggedElement = e.target; e.target.classList.add('dragging'); } });
+            container.addEventListener('dragend', e => { if (draggedElement) { draggedElement.classList.remove('dragging'); draggedElement = null; }});
+            container.addEventListener('dragover', e => { e.preventDefault(); const target = e.target.closest('.category-draggable'); if (target && target !== draggedElement) { const rect = target.getBoundingClientRect(); const next = (e.clientY - rect.top - (rect.height / 2)) > 0; if (next) { target.parentNode.insertBefore(draggedElement, target.nextSibling); } else { target.parentNode.insertBefore(draggedElement, target); } }});
+            container.addEventListener('drop', e => {
+                e.preventDefault();
+                const list = state.shoppingLists.find(l=>l.id === state.currentListId);
+                if(!list) return;
+                const newOrder = [...$$('#list-items-container .category-block')].map(el => el.dataset.categoryId);
+                list.categoryOrder = newOrder;
+                saveState();
+                renderActiveList();
+            });
+            loadState(); renderAll(); syncTheme();
+        }
+        initialize();
+    });
+    </script>
+</body>
+</html>
+
